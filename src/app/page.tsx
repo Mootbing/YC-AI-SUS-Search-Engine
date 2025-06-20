@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 export default function Home() {
   const [query, setQuery] = useState('');
@@ -12,6 +12,22 @@ export default function Home() {
   const [namespacesLoading, setNamespacesLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [namespacesError, setNamespacesError] = useState<string | null>(null);
+  const [dialRotation, setDialRotation] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
+  const lastScrollTime = useRef(0);
+  const scrollDelay = 150; // Minimum time between scroll events in milliseconds
+
+  // Check screen size for responsive behavior
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsMobile(window.innerWidth < 1200);
+    };
+
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
 
   // Fetch available namespaces on component mount
   useEffect(() => {
@@ -50,7 +66,7 @@ export default function Home() {
     };
 
     fetchNamespaces();
-  }, []); // Empty dependency array - only run on mount
+  }, []);
 
   const handleSearch = async () => {
     if (!query.trim() || !selectedNamespace) return;
@@ -86,133 +102,239 @@ export default function Home() {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 p-4">
-      {/* Glass morphic container */}
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-12 pt-8">
-          <h1 className="text-5xl font-bold text-white mb-4 bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-            YC AI SUS Search
-          </h1>
-          <p className="text-gray-400 text-lg">
-            Search through curated startup and tech content
-          </p>
-        </div>
+  const handleDialScroll = (e: React.WheelEvent) => {
+    e.preventDefault();
+    
+    // Check if enough time has passed since last scroll
+    const currentTime = Date.now();
+    if (currentTime - lastScrollTime.current < scrollDelay) {
+      return; // Ignore this scroll event
+    }
+    lastScrollTime.current = currentTime;
+    
+    if (namespaces.length === 0) return;
+    
+    const delta = e.deltaY;
+    const segmentAngle = 180 / (namespaces.length - 1);
+    
+    // Find current selected index
+    const currentIndex = namespaces.indexOf(selectedNamespace);
+    
+    // Calculate new index based on scroll direction (with boundaries)
+    let newIndex;
+    if (delta > 0) {
+      newIndex = Math.min(currentIndex + 1, namespaces.length - 1); // Stop at bottom
+    } else {
+      newIndex = Math.max(currentIndex - 1, 0); // Stop at top
+    }
+    
+    // Set new rotation and selected namespace
+    const newRotation = newIndex * segmentAngle;
+    setDialRotation(newRotation);
+    setSelectedNamespace(namespaces[newIndex]);
+  };
 
-        {/* Search container with glass effect */}
-        <div className="backdrop-blur-xl bg-white/10 rounded-3xl border border-white/20 shadow-2xl p-8 mb-8">
-          {/* Namespace selector */}
-          <div className="mb-6">
-            
-            {namespacesLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400 mr-3"></div>
-                <span className="text-gray-400">Loading...</span>
+  const selectNamespace = (namespace: string, index: number) => {
+    setSelectedNamespace(namespace);
+    const segmentAngle = 180 / (namespaces.length - 1);
+    setDialRotation(index * segmentAngle);
+  };
+
+  return (
+    <div className="min-h-screen bg-black text-white flex">
+      {/* Loading Overlay */}
+      {namespacesLoading && (
+        <div className="fixed inset-0 bg-black flex items-center justify-center z-50">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+            <p className="text-gray-400">Loading...</p>
+          </div>
+        </div>
+      )}
+
+      {/* Main Content */}
+      <div className={`flex ${isMobile ? 'flex-col' : 'flex-row'} w-full`}>
+        {/* Left side - Search */}
+        <div className={`${isMobile ? 'w-full' : 'flex-1'} flex flex-col justify-center items-center p-8`}>
+          <div className="w-full max-w-md">
+            {/* Title */}
+            <div className="text-center mb-12">
+              <h1 className="text-4xl font-light mb-2">Search</h1>
+              <p className="text-gray-400 text-sm">YC Opportunities At Your Fingertips</p>
+            </div>
+
+            {/* Mobile Namespace Dropdown */}
+            {isMobile && namespaces.length > 0 && (
+              <div className="mb-6">
+                <label className="block text-gray-400 text-sm mb-2">Select Namespace</label>
+                <select
+                  value={selectedNamespace}
+                  onChange={(e) => setSelectedNamespace(e.target.value)}
+                  disabled={namespacesLoading}
+                  className="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-white transition-colors disabled:opacity-50"
+                >
+                  {namespaces.map((namespace) => (
+                    <option key={namespace} value={namespace}>
+                      {namespace} ({namespaceStats[namespace] || 0} items)
+                    </option>
+                  ))}
+                </select>
               </div>
-            ) : namespacesError ? (
-              <div className="backdrop-blur-xl bg-red-500/10 rounded-2xl border border-red-400/20 p-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-6 h-6 rounded-full bg-red-500 flex items-center justify-center">
-                    <span className="text-white text-sm">!</span>
-                  </div>
-                  <p className="text-red-300">{namespacesError}</p>
-                </div>
+            )}
+
+            {/* Search Input */}
+            <div className="mb-8">
+              <div className="relative">
+                <input
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                  placeholder="What are you looking for?"
+                  disabled={!selectedNamespace || namespacesLoading}
+                  className="w-full px-0 py-4 bg-transparent border-0 border-b border-gray-600 text-white placeholder-gray-500 focus:outline-none focus:border-white transition-colors text-lg font-light disabled:opacity-50"
+                />
               </div>
-            ) : namespaces.length === 0 ? (
-              <div className="backdrop-blur-xl bg-yellow-500/10 rounded-2xl border border-yellow-400/20 p-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-6 h-6 rounded-full bg-yellow-500 flex items-center justify-center">
-                    <span className="text-white text-sm">!</span>
-                  </div>
-                  <p className="text-yellow-300">No namespaces available. Please check your Pinecone configuration.</p>
-                </div>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {namespaces.map((namespace) => (
-                  <button
-                    key={namespace}
-                    onClick={() => setSelectedNamespace(namespace)}
-                    className={`px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
-                      selectedNamespace === namespace
-                        ? 'bg-blue-500/20 border-2 border-blue-400 text-blue-300'
-                        : 'bg-white/5 border-2 border-white/10 text-gray-300 hover:bg-white/10 hover:border-white/20'
-                    }`}
-                  >
-                    <div className="text-center">
-                      <div>{namespace}</div>
-                      <div className="text-xs opacity-70 mt-1">
-                        {namespaceStats[namespace] || 0}+ matches
-                      </div>
-                    </div>
-                  </button>
-                ))}
+            </div>
+
+            {/* Search Button */}
+            <button
+              onClick={handleSearch}
+              disabled={loading || !selectedNamespace || namespacesLoading || !query.trim()}
+              className="w-full py-3 bg-white text-black font-medium rounded-full hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Searching...' : 'Search'}
+            </button>
+
+            <center>
+            <p className="text-gray-400 text-sm mt-4">A <u><a className="text-white" href="https://jasonxu.me/contact">Jason Xu</a></u> project</p>
+            </center>
+
+            {/* Error Display */}
+            {error && (
+              <div className="mt-6 p-4 border border-red-500 rounded-lg">
+                <p className="text-red-400 text-sm">{error}</p>
               </div>
             )}
           </div>
-
-          {/* Search input */}
-          {!namespacesLoading && <div className="mb-6">
-            <div className="relative">
-              <input
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                placeholder="Enter your search query..."
-                disabled={!selectedNamespace || namespacesLoading}
-                className="w-full px-6 py-4 bg-white/10 border-2 border-white/20 rounded-2xl text-white placeholder-gray-400 focus:outline-none focus:border-blue-400 focus:bg-white/15 transition-all duration-200 backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              />
-              <button
-                onClick={handleSearch}
-                disabled={loading || !selectedNamespace || namespacesLoading}
-                className="absolute right-2 top-2 px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl font-medium hover:from-blue-600 hover:to-purple-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? 'Searching...' : 'Search'}
-              </button>
-            </div>
-          </div>}
         </div>
 
-        {/* Error display */}
-        {error && (
-          <div className="backdrop-blur-xl bg-red-500/10 rounded-3xl border border-red-400/20 shadow-2xl p-6 mb-8">
-            <div className="flex items-center gap-3">
-              <div className="w-6 h-6 rounded-full bg-red-500 flex items-center justify-center">
-                <span className="text-white text-sm">!</span>
+        {/* Right side - Namespace Dial (Desktop Only) */}
+        {!isMobile && (
+          <div className="w-96 flex flex-col justify-center items-end p-8">
+            {namespacesError ? (
+              <div className="text-center">
+                <p className="text-red-400 text-sm">{namespacesError}</p>
               </div>
-              <p className="text-red-300">{error}</p>
-            </div>
+            ) : namespaces.length === 0 ? (
+              <div className="text-center">
+                <p className="text-yellow-400 text-sm">No namespaces available</p>
+              </div>
+            ) : (
+              <div className="relative w-full h-full flex items-center justify-start">
+                {/* Orbital Text Container */}
+                <div 
+                  className="relative w-[500px] h-[500px] cursor-pointer select-none"
+                  onWheel={handleDialScroll}
+                  style={{ transform: 'translateX(-350px)' }}
+                >
+                  {/* Namespace Options in Orbital Pattern */}
+                  {namespaces.map((namespace, index) => {
+                    const angle = (index * 180) / (namespaces.length - 1) - dialRotation; // 180 degree arc
+                    const radian = (angle * Math.PI) / 180;
+                    const radius = 240;
+                    const x = Math.cos(radian) * radius;
+                    const y = Math.sin(radian) * radius;
+                    const isSelected = namespace === selectedNamespace;
+                    
+                    // Calculate rotation for text to point inward
+                    const textRotation = angle; // Adding 180 to point outward
+                    
+                    // Calculate fade based on distance from selected
+                    const selectedIndex = namespaces.indexOf(selectedNamespace);
+                    const distance = Math.abs(index - selectedIndex);
+                    const maxDistance = Math.max(selectedIndex, namespaces.length - 1 - selectedIndex);
+                    const fadeOpacity = maxDistance > 0 ? Math.max(0.1, 1 - (distance / maxDistance) * 0.9) : 1;
+                    
+                    return (
+                      <div
+                        key={namespace}
+                        className={`text-left absolute transform -translate-y-1/2 cursor-pointer transition-all duration-500 ${
+                          isSelected ? 'scale-125 z-10' : 'scale-100 hover:scale-110'
+                        }`}
+                        style={{
+                          left: `calc(50% + ${x}px)`,
+                          top: `calc(50% + ${y}px)`,
+                          transform: `translate(-50%, -50%) rotate(${textRotation}deg)`,
+                        }}
+                        onClick={() => selectNamespace(namespace, index)}
+                      >
+                        <div className={`transition-all duration-300 whitespace-nowrap ${
+                          isSelected 
+                            ? 'text-white' 
+                            : 'text-gray-500 hover:text-gray-300'
+                        }`}
+                        style={{ opacity: fadeOpacity }}
+                        >
+                          <div className={`font-light transition-all duration-300 ${
+                            isSelected ? 'text-3xl' : 'text-xl'
+                          }`}>
+                            {namespace}
+                          </div>
+                          <div className={`text-xs opacity-70 mt-1 transition-all duration-300 ${
+                            isSelected ? 'text-gray-300' : 'text-gray-600'
+                          }`}>
+                            {namespaceStats[namespace] || 0} items
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  
+                  {/* Center Reference Point */}
+                  <div className="absolute top-1/2 left-1/2 w-2 h-2 bg-gray-600 rounded-full transform -translate-x-1/2 -translate-y-1/2 opacity-30"></div>
+                </div>
+                
+                {/* Instructions */}
+                <div className="absolute bottom-8 text-center">
+                  <p className="text-gray-500 text-sm">Scroll to navigate • Click to select</p>
+                </div>
+              </div>
+            )}
           </div>
         )}
+      </div>
 
-        {/* Results container */}
-        {results.length > 0 && (
-          <div className="backdrop-blur-xl bg-white/10 rounded-3xl border border-white/20 shadow-2xl p-8">
-            <h2 className="text-2xl font-bold text-white mb-6">
-              Search Results for "{query}" in {selectedNamespace}
-            </h2>
+      {/* Results Overlay */}
+      {results.length > 0 && (
+        <div className="fixed inset-0 bg-black bg-opacity-90 z-50 overflow-y-auto">
+          <div className="max-w-4xl mx-auto p-8">
+            <div className="flex justify-between items-center mb-8">
+              <h2 className="text-2xl font-light">
+                Results for "{query}"
+              </h2>
+              <button
+                onClick={() => setResults([])}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
             <div className="space-y-6">
               {results.map((result, index) => (
                 <div
                   key={index}
-                  className="backdrop-blur-sm bg-white/5 rounded-2xl border border-white/10 p-6 hover:bg-white/10 transition-all duration-200"
+                  className="border border-gray-800 rounded-lg p-6 hover:border-gray-600 transition-colors"
                   dangerouslySetInnerHTML={{ __html: result }}
                 />
               ))}
             </div>
           </div>
-        )}
-
-        {/* Loading state */}
-        {loading && (
-          <div className="backdrop-blur-xl bg-white/10 rounded-3xl border border-white/20 shadow-2xl p-8 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto mb-4"></div>
-            <p className="text-white">Searching through {selectedNamespace}...</p>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "YC AI SUS Search Engine",
+  title: "YCombinator Start School Search Engine",
   description: "Search through curated startup and tech content",
 };
 

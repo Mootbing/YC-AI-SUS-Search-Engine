@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
         let formattedResult = '';
         
         if (metadata.text) {
-          formattedResult += `<div class="text-lg font-semibold mb-2">${metadata.text}</div>`;
+          formattedResult += `<div class="text-lg mb-2">${metadata.text}</div>`;
         }
         
         if (metadata.title) {
