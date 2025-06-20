@@ -1,26 +1,44 @@
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApps } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, User } from 'firebase/auth';
 
 // Your Firebase configuration
 // You'll need to replace these with your actual Firebase config values
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || '',
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || '',
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || '',
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || '',
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '',
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || ''
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+// Check if we have the minimum required config
+const hasValidConfig = firebaseConfig.apiKey && 
+                      firebaseConfig.projectId && 
+                      firebaseConfig.authDomain;
+
+// Initialize Firebase only on client side and if not already initialized
+let app;
+if (typeof window !== 'undefined' && !getApps().length && hasValidConfig) {
+  try {
+    app = initializeApp(firebaseConfig);
+  } catch (error) {
+    console.error('Failed to initialize Firebase:', error);
+  }
+} else if (getApps().length) {
+  app = getApps()[0];
+}
 
 // Initialize Firebase Authentication and get a reference to the service
-export const auth = getAuth(app);
-export const googleProvider = new GoogleAuthProvider();
+export const auth = typeof window !== 'undefined' && app ? getAuth(app) : null;
+export const googleProvider = typeof window !== 'undefined' ? new GoogleAuthProvider() : null;
 
 // Authentication functions
 export const signInWithGoogle = async () => {
+  if (!auth || !googleProvider) {
+    throw new Error('Firebase not initialized. Please check your environment variables.');
+  }
+  
   try {
     const result = await signInWithPopup(auth, googleProvider);
     return result.user;
@@ -31,6 +49,10 @@ export const signInWithGoogle = async () => {
 };
 
 export const signOutUser = async () => {
+  if (!auth) {
+    throw new Error('Firebase not initialized. Please check your environment variables.');
+  }
+  
   try {
     await signOut(auth);
   } catch (error) {
@@ -40,5 +62,10 @@ export const signOutUser = async () => {
 };
 
 export const onAuthStateChange = (callback: (user: User | null) => void) => {
+  if (!auth) {
+    // Return a no-op function if Firebase is not initialized
+    return () => {};
+  }
+  
   return onAuthStateChanged(auth, callback);
 }; 

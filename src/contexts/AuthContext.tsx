@@ -29,12 +29,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChange((user) => {
-      setUser(user);
-      setLoading(false);
-    });
+    // Only set up auth listener if Firebase is available
+    if (typeof window !== 'undefined' && auth) {
+      const unsubscribe = onAuthStateChange((user) => {
+        setUser(user);
+        setLoading(false);
+      });
 
-    return () => unsubscribe();
+      return () => unsubscribe();
+    } else {
+      // If Firebase is not available, just set loading to false
+      setLoading(false);
+    }
   }, []);
 
   const value = {

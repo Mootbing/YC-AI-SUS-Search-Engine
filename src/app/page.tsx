@@ -210,8 +210,8 @@ export default function Home() {
           <div className="w-full max-w-md">
             {/* Title */}
             <div className="text-center mb-12">
-              <h1 className="text-4xl font-light mb-2">Search</h1>
-              <p className="text-gray-400 text-sm">YC Opportunities At Your Fingertips</p>
+              <h1 className="text-4xl font-light mb-2">YCombinator Almanac</h1>
+              <p className="text-gray-400 text-sm">YC-Exclusive Opportunities At Your Fingertips</p>
             </div>
 
             {/* Mobile Namespace Dropdown */}
