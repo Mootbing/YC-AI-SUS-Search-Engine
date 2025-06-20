@@ -1,4 +1,4 @@
-# YC Search Engine
+# YC Search Engine 
 
 A modern search engine for YCombinator opportunities with Firebase authentication and Pinecone vector search.
 
