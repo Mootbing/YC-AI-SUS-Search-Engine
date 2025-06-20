@@ -166,19 +166,29 @@ export default function Home() {
             {/* Mobile Namespace Dropdown */}
             {isMobile && namespaces.length > 0 && (
               <div className="mb-6">
-                <label className="block text-gray-400 text-sm mb-2">Select Namespace</label>
-                <select
-                  value={selectedNamespace}
-                  onChange={(e) => setSelectedNamespace(e.target.value)}
-                  disabled={namespacesLoading}
-                  className="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-white transition-colors disabled:opacity-50"
-                >
-                  {namespaces.map((namespace) => (
-                    <option key={namespace} value={namespace}>
-                      {namespace} ({namespaceStats[namespace] || 0} items)
-                    </option>
-                  ))}
-                </select>
+                {/* <label className="block text-gray-400 text-sm mb-2">Select Namespace</label> */}
+                <div className="overflow-x-auto scrollbar-hide">
+                  <div className="flex space-x-4 pb-2 min-w-max">
+                    {namespaces.map((namespace) => (
+                      <button
+                        key={namespace}
+                        onClick={() => setSelectedNamespace(namespace)}
+                        className={`whitespace-nowrap px-4 py-2 rounded-lg border transition-all duration-200 ${
+                          selectedNamespace === namespace
+                            ? 'border-white text-white font-bold'
+                            : 'border-gray-600 text-gray-400 font-normal hover:border-gray-400 hover:text-gray-300'
+                        }`}
+                      >
+                        <div className="text-sm">
+                          {namespace}
+                        </div>
+                        <div className="text-xs opacity-70 mt-1">
+                          {namespaceStats[namespace] || 0} items
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
 
