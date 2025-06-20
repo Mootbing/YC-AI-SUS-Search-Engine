@@ -11,7 +11,22 @@ PINECONE_API_KEY=your_pinecone_api_key_here
 
 # Optional: Pinecone Environment (if needed)
 PINECONE_ENVIRONMENT=your_pinecone_environment_here
+
+# Firebase Configuration
+NEXT_PUBLIC_FIREBASE_API_KEY=your_firebase_api_key
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
+NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
 ```
+
+## Firebase Setup
+
+1. Create a new Firebase project at [Firebase Console](https://console.firebase.google.com/)
+2. Enable Authentication and add Google as a sign-in provider
+3. Get your Firebase configuration from Project Settings > General > Your apps
+4. Add the configuration values to your `.env.local` file
 
 ## Pinecone Index Setup
 
@@ -44,7 +59,9 @@ The application will be available at `http://localhost:3000`
 ## Features
 
 - Glass morphic black search interface
+- Firebase Google authentication
 - Index selection for different content types
 - Real-time search with loading states
 - HTML-formatted results display
-- Responsive design for all devices 
+- Responsive design for all devices
+- User profile display with sign-out functionality 

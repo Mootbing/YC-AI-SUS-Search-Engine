@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { signOutUser } from '@/lib/firebase';
+import LoginModal from '@/components/LoginModal';
 
 export default function Home() {
   const [query, setQuery] = useState('');
@@ -14,8 +17,11 @@ export default function Home() {
   const [namespacesError, setNamespacesError] = useState<string | null>(null);
   const [dialRotation, setDialRotation] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const lastScrollTime = useRef(0);
   const scrollDelay = 150; // Minimum time between scroll events in milliseconds
+
+  const { user, isAuthenticated, loading: authLoading } = useAuth();
 
   // Check screen size for responsive behavior
   useEffect(() => {
@@ -71,6 +77,12 @@ export default function Home() {
   const handleSearch = async () => {
     if (!query.trim() || !selectedNamespace) return;
     
+    // Check if user is authenticated
+    if (!isAuthenticated) {
+      setShowLoginModal(true);
+      return;
+    }
+    
     setLoading(true);
     setError(null);
     try {
@@ -99,6 +111,13 @@ export default function Home() {
       setResults([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleLoginSuccess = () => {
+    // After successful login, automatically perform the search
+    if (query.trim() && selectedNamespace) {
+      handleSearch();
     }
   };
 
@@ -149,6 +168,38 @@ export default function Home() {
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
             <p className="text-gray-400">Loading...</p>
           </div>
+        </div>
+      )}
+
+      {/* User Profile Section */}
+      {!authLoading && (
+        <div className="fixed top-4 right-4 z-40">
+          {isAuthenticated && user ? (
+            <div className="flex items-center space-x-3 bg-black border border-gray-700 rounded-lg px-4 py-2">
+              <div className="flex items-center space-x-2">
+                {user.photoURL && (
+                  <img 
+                    src={user.photoURL} 
+                    alt={user.displayName || 'User'} 
+                    className="w-8 h-8 rounded-full"
+                  />
+                )}
+                <span className="text-sm text-gray-300">
+                  {user.displayName || user.email}
+                </span>
+              </div>
+              <button
+                onClick={() => signOutUser()}
+                className="text-red-400 hover:text-white text-sm transition-colors"
+              >
+                Sign Out
+              </button>
+            </div>
+          ) : (
+            <div className="text-sm text-gray-400">
+              Not signed in
+            </div>
+          )}
         </div>
       )}
 
@@ -344,6 +395,15 @@ export default function Home() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Login Modal */}
+      {showLoginModal && (
+        <LoginModal
+          isOpen={showLoginModal}
+          onClose={() => setShowLoginModal(false)}
+          onLoginSuccess={handleLoginSuccess}
+        />
       )}
     </div>
   );
