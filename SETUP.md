@@ -1,4 +1,5 @@
 # YC AI SUS Search Engine Setup
+Fire trust (took me 2 hours to figure out Vercel 😭😭😭)
 
 ## Environment Variables
 
