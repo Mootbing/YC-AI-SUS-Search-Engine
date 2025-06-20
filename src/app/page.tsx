@@ -217,7 +217,7 @@ export default function Home() {
             </button>
 
             <center>
-            <p className="text-gray-400 text-sm mt-4">A <u><a className="text-white" href="https://jasonxu.me/contact">Jason Xu</a></u> project</p>
+            <p className="text-gray-400 text-sm mt-4">A <a className="text-white" href="https://jasonxu.me/contact">Jason Xu</a> project; <a className="text-white" href="https://github.com/Mootbing/YC-AI-SUS-Search-Engine">Github</a></p>
             </center>
 
             {/* Error Display */}
